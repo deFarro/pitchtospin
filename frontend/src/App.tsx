@@ -1,48 +1,10 @@
 import { useState } from "react";
-
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-}
+import { Chat } from "./components/Chat";
+import { useChat } from "./hooks/useChat";
 
 function App() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { messages, loading, sendMessage } = useChat();
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const sendMessage = async () => {
-    if (!input.trim() || loading) return;
-
-    const userMessage: Message = { role: "user", content: input };
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
-    setLoading(true);
-
-    try {
-      const res = await fetch("/api/agent/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input, history: messages }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || `Server error (${res.status})`);
-      }
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: data.response },
-      ]);
-    } catch (err) {
-      const errorMsg =
-        err instanceof Error ? err.message : "Something went wrong.";
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: errorMsg },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="flex flex-col h-screen bg-zinc-950 text-zinc-100">
@@ -53,47 +15,14 @@ function App() {
         </p>
       </header>
 
-      <main className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-        {messages.length === 0 && (
-          <div className="flex items-center justify-center h-full text-zinc-600">
-            <div className="text-center space-y-2">
-              <p className="text-lg">Ask me about music</p>
-              <p className="text-sm">
-                Try: "What is the latest release from Kings of Leon?"
-              </p>
-            </div>
-          </div>
-        )}
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`max-w-2xl ${msg.role === "user" ? "ml-auto" : "mr-auto"}`}
-          >
-            <div
-              className={`rounded-lg px-4 py-3 text-sm leading-relaxed ${
-                msg.role === "user"
-                  ? "bg-indigo-600 text-white"
-                  : "bg-zinc-800 text-zinc-200"
-              }`}
-            >
-              {msg.content}
-            </div>
-          </div>
-        ))}
-        {loading && (
-          <div className="max-w-2xl mr-auto">
-            <div className="rounded-lg px-4 py-3 text-sm bg-zinc-800 text-zinc-400 animate-pulse">
-              Thinking...
-            </div>
-          </div>
-        )}
-      </main>
+      <Chat messages={messages} loading={loading} />
 
       <footer className="border-t border-zinc-800 px-6 py-4">
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            sendMessage();
+            sendMessage(input);
+            setInput("");
           }}
           className="flex gap-3 max-w-3xl mx-auto"
         >
