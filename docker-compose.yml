@@ -49,6 +49,8 @@ services:
       CLICKHOUSE_PASSWORD: ""
       INGESTION_SERVICE_URL: http://ingestion:8080
       PORT: "3000"
+    volumes:
+      - ./agent/src:/app/src
     depends_on:
       clickhouse:
         condition: service_healthy
@@ -62,6 +64,8 @@ services:
       - "5173:5173"
     environment:
       API_URL: http://agent:3000
+    volumes:
+      - ./frontend/src:/app/src
     depends_on:
       - agent
 
@@ -72,6 +76,8 @@ services:
       - "5174:5174"
     environment:
       API_URL: http://agent:3000
+    volumes:
+      - ./dashboard/src:/app/src
     depends_on:
       - agent
 
