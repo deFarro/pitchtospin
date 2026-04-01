@@ -1,0 +1,79 @@
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: pitchtospin-clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - ./agent/sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    environment:
+      CLICKHOUSE_DB: pitchtospin
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  ingestion:
+    build: ./ingestion
+    container_name: pitchtospin-ingestion
+    ports:
+      - "8080:8080"
+    environment:
+      CLICKHOUSE_ADDR: clickhouse:9000
+      CLICKHOUSE_DATABASE: pitchtospin
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ""
+      INGESTION_PORT: "8080"
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+
+  agent:
+    build: ./agent
+    container_name: pitchtospin-agent
+    ports:
+      - "3000:3000"
+    env_file: .env
+    environment:
+      CLICKHOUSE_HOST: http://clickhouse:8123
+      CLICKHOUSE_DATABASE: pitchtospin
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ""
+      INGESTION_SERVICE_URL: http://ingestion:8080
+      PORT: "3000"
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      ingestion:
+        condition: service_started
+
+  frontend:
+    build: ./frontend
+    container_name: pitchtospin-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      API_URL: http://agent:3000
+    depends_on:
+      - agent
+
+  dashboard:
+    build: ./dashboard
+    container_name: pitchtospin-dashboard
+    ports:
+      - "5174:5174"
+    environment:
+      API_URL: http://agent:3000
+    depends_on:
+      - agent
+
+volumes:
+  clickhouse-data:

@@ -1,0 +1,20 @@
+node_modules/
+dist/
+.env
+*.log
+
+# Go
+ingestion/bin/
+
+# ClickHouse
+clickhouse-data/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
